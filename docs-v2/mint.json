@@ -188,7 +188,8 @@
                         "guides/custom-integrations/build-a-custom-integration",
                         "guides/custom-integrations/extend-a-pre-built-integration",
                         "guides/custom-integrations/event-based-scripts",
-                        "guides/custom-integrations/service"
+                        "guides/custom-integrations/service",
+                        "guides/custom-integrations/migrate-to-zero-yaml"
                     ]
                 },
                 {
@@ -503,6 +504,7 @@
                 "integrations/all/jira-data-center",
                 "integrations/all/jira-data-center-basic",
                 "integrations/all/jobadder",
+                "integrations/all/jobvite",
                 "integrations/all/jotform",
                 "integrations/all/kandji",
                 "integrations/all/keap",
@@ -628,6 +630,7 @@
                 "integrations/all/rock-gym-pro",
                 "integrations/all/rootly",
                 "integrations/all/sage",
+                "integrations/all/sage-hr",
                 "integrations/all/sage-intacct",
                 "integrations/all/sage-intacct-oauth",
                 "integrations/all/salesforce",
@@ -690,6 +693,7 @@
                 "integrations/all/tiktok-ads",
                 "integrations/all/timely",
                 "integrations/all/todoist",
+                "integrations/all/trafft",
                 "integrations/all/trakstar-hire",
                 "integrations/all/trello",
                 "integrations/all/tldv",
