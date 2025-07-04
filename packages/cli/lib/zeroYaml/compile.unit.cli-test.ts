@@ -12,12 +12,12 @@ const exec = promisify(execCb);
 
 describe('bundleFile', () => {
     it('should bundle a sync with a constant export', async () => {
-        const result = await bundleFile({ entryPoint: path.join(fixturesPath, 'zero/valid/github/syncs/fetchIssues.ts') });
+        const result = await bundleFile({ entryPoint: path.join(fixturesPath, 'zero/valid/github/syncs/fetchIssues.ts'), projectRootPath: fixturesPath });
         const value = result.unwrap();
         expect(value).toMatchSnapshot();
     });
     it('should bundle an action with a default export', async () => {
-        const result = await bundleFile({ entryPoint: path.join(fixturesPath, 'zero/valid/github/actions/createIssue.ts') });
+        const result = await bundleFile({ entryPoint: path.join(fixturesPath, 'zero/valid/github/actions/createIssue.ts'), projectRootPath: fixturesPath });
         const value = result.unwrap();
         expect(value).toMatchSnapshot();
     });
@@ -29,7 +29,7 @@ describe('compileAll', () => {
         console.log('compiling to ', dir);
         await copyDirectoryAndContents(path.join(fixturesPath, 'zero/valid'), dir);
 
-        const pkg = { name: 'test', dependencies: { nango: `file:${path.resolve(path.join(fixturesPath, '..'))}`, zod: '3.24.2' } };
+        const pkg = { name: 'test', type: 'module', dependencies: { nango: `file:${path.resolve(path.join(fixturesPath, '..'))}`, zod: '3.24.2' } };
 
         await fs.promises.writeFile(path.join(dir, 'package.json'), JSON.stringify(pkg, null, 2));
         await exec('npm i', { cwd: dir });

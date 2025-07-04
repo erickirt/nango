@@ -1,9 +1,9 @@
 export type AuthErrorType =
-    | 'missingAuthToken'
+    | 'missing_auth_token'
     | 'blocked_by_browser'
-    | 'invalidHostUrl'
-    | 'missingCredentials'
-    | 'windowClosed'
+    | 'invalid_host_url'
+    | 'missing_credentials'
+    | 'window_closed'
     | 'connection_test_failed'
     | 'missing_connect_session_token'
     | 'resource_capped';
@@ -25,13 +25,13 @@ export interface ConnectionConfig {
     hmac?: string;
     user_scope?: string[];
     authorization_params?: Record<string, string | undefined>;
+    installation?: 'outbound';
     credentials?:
         | OAuthCredentialsOverride
         | BasicApiCredentials
         | ApiKeyCredentials
         | AppStoreCredentials
         | TBACredentials
-        | TableauCredentials
         | JwtCredentials
         | TwoStepCredentials
         | OAuth2ClientCredentials
@@ -66,12 +66,6 @@ export interface TBACredentials {
     oauth_client_secret_override?: string;
 }
 
-export interface TableauCredentials {
-    pat_name: string;
-    pat_secret: string;
-    content_url?: string;
-}
-
 export interface JwtCredentials {
     type?: 'JWT';
     [key: string]: any;
@@ -80,6 +74,8 @@ export interface JwtCredentials {
 export interface OAuth2ClientCredentials {
     client_id: string;
     client_secret: string;
+    client_certificate?: string;
+    client_private_key?: string;
 }
 
 export interface BillCredentials {
