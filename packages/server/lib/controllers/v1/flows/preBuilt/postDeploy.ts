@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import db from '@nangohq/database';
 import { logContextGetter } from '@nangohq/logs';
-import { configService, connectionService, deployPreBuilt, flowService, productTracking, startTrial, syncManager } from '@nangohq/shared';
+import { configService, connectionService, deployTemplate, flowService, productTracking, startTrial, syncManager } from '@nangohq/shared';
 import { requireEmptyQuery, zodErrorToHTTP } from '@nangohq/utils';
 
 import { providerConfigKeySchema, providerSchema, scriptNameSchema } from '../../../../helpers/validation.js';
@@ -10,7 +10,7 @@ import { asyncWrapper } from '../../../../utils/asyncWrapper.js';
 import { getOrchestrator } from '../../../../utils/utils.js';
 import { flowConfig } from '../../../sync/deploy/validation.js';
 
-import type { NangoModel, PostPreBuiltDeploy } from '@nangohq/types';
+import type { PostPreBuiltDeploy } from '@nangohq/types';
 
 const validation = z
     .object({
@@ -43,8 +43,8 @@ export const postPreBuiltDeploy = asyncWrapper<PostPreBuiltDeploy>(async (req, r
     const { environment, account, plan, user } = res.locals;
     const environmentId = environment.id;
 
-    const config = await configService.getIdByProviderConfigKey(environmentId, body.providerConfigKey);
-    if (!config) {
+    const integration = await configService.getProviderConfig(body.providerConfigKey, environmentId);
+    if (!integration) {
         res.status(400).send({ error: { code: 'unknown_provider' } });
         return;
     }
@@ -53,7 +53,7 @@ export const postPreBuiltDeploy = asyncWrapper<PostPreBuiltDeploy>(async (req, r
         res.status(400).send({ error: { code: 'plan_limit', message: "Can't enable more script, upgrade or extend your trial period" } });
         return;
     }
-    if (plan && !plan.trial_end_at && plan.name === 'free') {
+    if (plan && !plan.trial_end_at && plan.auto_idle) {
         await startTrial(db.knex, plan);
         productTracking.track({ name: 'account:trial:started', team: account, user });
     }
@@ -74,43 +74,26 @@ export const postPreBuiltDeploy = asyncWrapper<PostPreBuiltDeploy>(async (req, r
 
     const flow = flowService.getFlowByIntegrationAndName({ provider: body.provider, type: body.type, scriptName: body.scriptName });
     if (!flow) {
-        res.status(400).send({ error: { code: 'unknown_flow' } });
+        res.status(400).send({ error: { code: 'invalid_body', message: 'No template exists for this provider and script name' } });
         return;
     }
 
-    const { success, error, response } = await deployPreBuilt({
+    const logCtx = await logContextGetter.create({ operation: { type: 'deploy', action: 'prebuilt' } }, { account, environment });
+    const resDeploy = await deployTemplate({
         environment,
-        account,
-        configs: [
-            {
-                endpoints: flow.endpoints,
-                name: flow.name,
-                runs: flow.runs || null,
-                attributes: flow.attributes,
-                auto_start: flow.auto_start,
-                public_route: body.provider,
-                provider: body.provider,
-                providerConfigKey: body.providerConfigKey,
-                model_schema: flow.models as unknown as NangoModel[],
-                is_public: true,
-                type: flow.type!,
-                models: flow.returns,
-                track_deletes: flow.track_deletes === true,
-                metadata: { description: flow.description, scopes: flow.scopes },
-                input: flow.input,
-                version: flow.version ?? null
-            }
-        ],
-        logContextGetter,
-        orchestrator
+        team: account,
+        template: flow,
+        integration,
+        deployInfo: { integrationId: body.providerConfigKey, provider: body.provider },
+        logCtx
     });
-
-    if (!success || response === null) {
-        res.status(503).send({ error: { code: 'failed_to_deploy', errors: [error!] } });
+    if (resDeploy.isErr()) {
+        res.status(503).send({ error: { code: 'failed_to_deploy', errors: [resDeploy.error] } });
         return;
     }
 
-    await syncManager.triggerIfConnectionsExist({ flows: response.result, environmentId, logContextGetter, orchestrator });
+    const deploy = resDeploy.value;
+    await syncManager.triggerIfConnectionsExist({ flows: [deploy.result], environmentId, logContextGetter, orchestrator });
 
-    res.status(201).send({ data: { id: response.result[0]!.id! } });
+    res.status(201).send({ data: { id: deploy.result.id! } });
 });

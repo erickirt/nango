@@ -1,11 +1,15 @@
 import crypto from 'node:crypto';
-import { asyncWrapper } from '../../../../utils/asyncWrapper.js';
-import { requireEmptyQuery, zodErrorToHTTP } from '@nangohq/utils';
-import type { GetIntegration } from '@nangohq/types';
-import { configService, connectionService, getGlobalWebhookReceiveUrl, getProvider } from '@nangohq/shared';
+
 import { z } from 'zod';
+
+import { configService, connectionService, getGlobalWebhookReceiveUrl, getProvider } from '@nangohq/shared';
+import { requireEmptyQuery, zodErrorToHTTP } from '@nangohq/utils';
+
 import { integrationToApi } from '../../../../formatters/integration.js';
 import { providerConfigKeySchema } from '../../../../helpers/validation.js';
+import { asyncWrapper } from '../../../../utils/asyncWrapper.js';
+
+import type { GetIntegration } from '@nangohq/types';
 
 export const validationParams = z
     .object({
@@ -58,7 +62,6 @@ export const getIntegration = asyncWrapper<GetIntegration>(async (req, res) => {
     }
 
     const count = await connectionService.countConnections({ environmentId: environment.id, providerConfigKey: params.providerConfigKey });
-
     res.status(200).send({
         data: {
             integration: integrationToApi(integration),

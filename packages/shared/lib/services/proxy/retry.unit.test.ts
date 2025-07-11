@@ -1,8 +1,10 @@
-import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { AxiosError } from 'axios';
 import { describe, expect, it } from 'vitest';
-import { getProxyRetryFromErr, getRetryFromHeader, getRetryFromBody } from './retry.js';
+
+import { getProxyRetryFromErr, getRetryFromBody, getRetryFromHeader } from './retry.js';
 import { getDefaultProxy } from './utils.test.js';
+
+import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import type { Merge } from 'type-fest';
 
 function getDefaultError(value: Merge<Partial<AxiosError>, { response?: Partial<AxiosResponse> }>): AxiosError {
@@ -40,6 +42,17 @@ describe('getProxyRetryFromErr', () => {
 
             const res = getRetryFromHeader({ err: mockAxiosError, type: 'at', retryHeader: 'x-rateLimit-reset' });
             expect(res).toStrictEqual({ found: false, reason: 'at:header_invalid_wait' });
+        });
+
+        it('should retry at (ms)', () => {
+            const nowInMs = Date.now();
+            const mockAxiosError = getDefaultError({
+                response: {
+                    headers: { 'x-rateLimit-reset-ms': nowInMs + 1000 }
+                }
+            });
+            const res = getRetryFromHeader({ err: mockAxiosError, type: 'at', retryHeader: 'x-rateLimit-reset-ms' });
+            expect(res).toStrictEqual({ found: true, reason: 'at', wait: 1000 });
         });
     });
 

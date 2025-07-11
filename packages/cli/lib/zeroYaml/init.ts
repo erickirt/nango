@@ -1,7 +1,6 @@
 import { exec } from 'node:child_process';
 import fs from 'node:fs';
-import path, { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { promisify } from 'node:util';
 
 import chalk from 'chalk';
@@ -10,16 +9,22 @@ import ora from 'ora';
 import { printDebug } from '../utils.js';
 import { NANGO_VERSION } from '../version.js';
 import { compileAll } from './compile.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { exampleFolder } from './constants.js';
 
 const execAsync = promisify(exec);
 
 /**
  * Init a new nango folder
  */
-export async function initZero({ absolutePath, debug = false }: { absolutePath: string; debug?: boolean }): Promise<boolean> {
+export async function initZero({
+    absolutePath,
+    debug = false,
+    onlyCopy = false
+}: {
+    absolutePath: string;
+    debug?: boolean;
+    onlyCopy?: boolean;
+}): Promise<boolean> {
     printDebug(`Creating the nango integrations directory in ${absolutePath}`, debug);
 
     const stat = fs.statSync(absolutePath, { throwIfNoEntry: false });
@@ -37,12 +42,11 @@ export async function initZero({ absolutePath, debug = false }: { absolutePath: 
     // Copy example folder
     {
         const spinner = ora({ text: 'Copy example' }).start();
-        const exampleFolderPath = path.join(__dirname, '..', '..', 'example');
         try {
             printDebug(`Copy example folder`, debug);
 
             await fs.promises.mkdir(absolutePath, { recursive: true });
-            await copyRecursive(exampleFolderPath, absolutePath);
+            await copyRecursive(exampleFolder, absolutePath);
             await fs.promises.rename(path.join(absolutePath, '.env.example'), path.join(absolutePath, '.env'));
             spinner.succeed();
         } catch (err) {
@@ -64,6 +68,11 @@ export async function initZero({ absolutePath, debug = false }: { absolutePath: 
         return false;
     }
 
+    // If onlyCopy is true, we don't need to run npm install or compile
+    if (onlyCopy) {
+        return true;
+    }
+
     // Run npm install
     {
         const spinner = ora({ text: 'Install packages' }).start();
@@ -79,7 +88,6 @@ export async function initZero({ absolutePath, debug = false }: { absolutePath: 
         }
     }
 
-    // TODO: add compileAll
     {
         const res = await compileAll({ fullPath: absolutePath, debug });
         if (res.isErr()) {
